@@ -1,0 +1,3 @@
+-- Keep the database image responsible only for provisioning the database.
+-- Prisma migrations own the application schema so `prisma migrate deploy`
+-- can run against an empty schema during Docker Compose startup.

@@ -1,0 +1,329 @@
+// 心理健康互助平台数据模型
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  COUNSELOR
+  ADMIN
+}
+
+enum CounselorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PostStatus {
+  ACTIVE
+  HIDDEN
+  REPORTED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum GroupStatus {
+  ACTIVE
+  FULL
+  CLOSED
+}
+
+enum CheckInStatus {
+  COMPLETED
+  MISSED
+}
+
+model User {
+  id              String          @id @default(uuid())
+  username        String          @unique
+  email           String          @unique
+  passwordHash    String
+  avatar          String?
+  nickname        String?
+  anonymousName   String?
+  role            UserRole        @default(USER)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  isActive        Boolean         @default(true)
+  
+  counselorProfile CounselorProfile?
+  posts           Post[]
+  replies         Reply[]
+  appointmentsAsClient Appointment[] @relation("ClientAppointments")
+  appointmentsAsCounselor Appointment[] @relation("CounselorAppointments")
+  groupMemberships GroupMember[]
+  checkIns        CheckIn[]
+  favorites       Favorite[]
+  sentMessages    GroupMessage[]
+  crisisAlerts    CrisisAlert[]
+  
+  @@map("users")
+}
+
+model CounselorProfile {
+  id              String          @id @default(uuid())
+  userId          String          @unique
+  realName        String
+  certificateNumber String
+  certificateImage String
+  expertise       String[]
+  introduction    String?
+  hourlyRate      Decimal         @default(0)
+  status          CounselorStatus @default(PENDING)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  user            User            @relation(fields: [userId], references: [id])
+  schedules       Schedule[]
+  tags            CounselorTag[]
+  
+  @@map("counselor_profiles")
+}
+
+model Tag {
+  id              String          @id @default(uuid())
+  name            String          @unique
+  description     String?
+  color           String          @default("#3b82f6")
+  createdAt       DateTime        @default(now())
+  
+  posts           PostTag[]
+  counselors      CounselorTag[]
+  
+  @@map("tags")
+}
+
+model CounselorTag {
+  counselorId     String
+  tagId           String
+  
+  counselor       CounselorProfile @relation(fields: [counselorId], references: [id])
+  tag             Tag             @relation(fields: [tagId], references: [id])
+  
+  @@id([counselorId, tagId])
+  @@map("counselor_tags")
+}
+
+model Post {
+  id              String          @id @default(uuid())
+  userId          String
+  title           String
+  content         String
+  isAnonymous     Boolean         @default(false)
+  displayName     String
+  status          PostStatus      @default(ACTIVE)
+  viewCount       Int             @default(0)
+  likeCount       Int             @default(0)
+  replyCount      Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  user            User            @relation(fields: [userId], references: [id])
+  tags            PostTag[]
+  replies         Reply[]
+  favorites       Favorite[]
+  crisisAlerts    CrisisAlert[]
+  
+  @@map("posts")
+}
+
+model PostTag {
+  postId          String
+  tagId           String
+  
+  post            Post            @relation(fields: [postId], references: [id])
+  tag             Tag             @relation(fields: [tagId], references: [id])
+  
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model Reply {
+  id              String          @id @default(uuid())
+  postId          String
+  userId          String
+  content         String
+  isCounselorReply Boolean       @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  post            Post            @relation(fields: [postId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  
+  @@map("replies")
+}
+
+model Schedule {
+  id              String          @id @default(uuid())
+  counselorId     String
+  date            DateTime
+  startTime       String
+  endTime         String
+  isAvailable     Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  
+  counselor       CounselorProfile @relation(fields: [counselorId], references: [id])
+  appointment     Appointment?
+  
+  @@map("schedules")
+}
+
+model Appointment {
+  id              String          @id @default(uuid())
+  clientId        String
+  counselorId     String
+  scheduleId      String          @unique
+  title           String
+  description     String?
+  status          AppointmentStatus @default(PENDING)
+  price           Decimal
+  paymentStatus   Boolean         @default(false)
+  meetingLink     String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  client          User            @relation("ClientAppointments", fields: [clientId], references: [id])
+  counselor       User            @relation("CounselorAppointments", fields: [counselorId], references: [id])
+  schedule        Schedule        @relation(fields: [scheduleId], references: [id])
+  
+  @@map("appointments")
+}
+
+model SupportGroup {
+  id              String          @id @default(uuid())
+  name            String
+  description     String
+  topic           String
+  maxMembers      Int             @default(5)
+  minMembers      Int             @default(3)
+  status          GroupStatus     @default(ACTIVE)
+  meetingTime     String?
+  meetingFrequency String?
+  createdBy       String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  members         GroupMember[]
+  messages        GroupMessage[]
+  checkInTemplates CheckInTemplate[]
+  
+  @@map("support_groups")
+}
+
+model GroupMember {
+  id              String          @id @default(uuid())
+  groupId         String
+  userId          String
+  joinedAt        DateTime        @default(now())
+  role            String          @default("member")
+  
+  group           SupportGroup    @relation(fields: [groupId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  checkIns        CheckIn[]
+  
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model GroupMessage {
+  id              String          @id @default(uuid())
+  groupId         String
+  userId          String
+  content         String
+  createdAt       DateTime        @default(now())
+  
+  group           SupportGroup    @relation(fields: [groupId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  
+  @@map("group_messages")
+}
+
+model CheckInTemplate {
+  id              String          @id @default(uuid())
+  groupId         String
+  title           String
+  description     String?
+  reminderTime    String
+  createdAt       DateTime        @default(now())
+  
+  group           SupportGroup    @relation(fields: [groupId], references: [id])
+  checkIns        CheckIn[]
+  
+  @@map("checkin_templates")
+}
+
+model CheckIn {
+  id              String          @id @default(uuid())
+  templateId      String
+  memberId        String
+  userId          String
+  status          CheckInStatus
+  response        String?
+  moodRating      Int?
+  createdAt       DateTime        @default(now())
+  
+  template        CheckInTemplate @relation(fields: [templateId], references: [id])
+  member          GroupMember     @relation(fields: [memberId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  
+  @@map("checkins")
+}
+
+model Favorite {
+  id              String          @id @default(uuid())
+  userId          String
+  postId          String
+  createdAt       DateTime        @default(now())
+  
+  user            User            @relation(fields: [userId], references: [id])
+  post            Post            @relation(fields: [postId], references: [id])
+  
+  @@unique([userId, postId])
+  @@map("favorites")
+}
+
+model CrisisAlert {
+  id              String          @id @default(uuid())
+  userId          String
+  postId          String?
+  keyword         String
+  content         String
+  isResolved      Boolean         @default(false)
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  
+  user            User            @relation(fields: [userId], references: [id])
+  post            Post?           @relation(fields: [postId], references: [id])
+  
+  @@map("crisis_alerts")
+}
+
+model Notification {
+  id              String          @id @default(uuid())
+  userId          String
+  type            String
+  title           String
+  content         String
+  isRead          Boolean         @default(false)
+  relatedId       String?
+  createdAt       DateTime        @default(now())
+  
+  @@map("notifications")
+}
