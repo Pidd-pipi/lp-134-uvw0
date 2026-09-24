@@ -231,6 +231,7 @@ model GroupMember {
   groupId         String
   userId          String
   joinedAt        DateTime        @default(now())
+  leftAt          DateTime?
   role            String          @default("member")
   
   group           SupportGroup    @relation(fields: [groupId], references: [id])

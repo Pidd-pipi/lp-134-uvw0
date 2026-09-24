@@ -95,6 +95,8 @@ export interface SupportGroup {
   createdAt: string;
   members: GroupMember[];
   messages?: GroupMessage[];
+  isMember?: boolean;
+  viewerRole?: string | null;
   _count?: { members: number };
 }
 
@@ -103,6 +105,7 @@ export interface GroupMember {
   groupId: string;
   userId: string;
   joinedAt: string;
+  leftAt?: string | null;
   role: string;
   user: User;
 }

@@ -155,11 +155,12 @@ router.get('/groups', authMiddleware, async (req: AuthRequest, res) => {
     const userId = req.user!.id;
 
     const memberships = await prisma.groupMember.findMany({
-      where: { userId },
+      where: { userId, leftAt: null },
       include: {
         group: {
           include: {
             members: {
+              where: { leftAt: null },
               include: {
                 user: {
                   select: {

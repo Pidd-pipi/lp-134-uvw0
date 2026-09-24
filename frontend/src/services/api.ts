@@ -84,6 +84,9 @@ export const groupAPI = {
   createGroup: (data: { name: string; description: string; topic: string; maxMembers?: number; meetingTime?: string; meetingFrequency?: string }) =>
     api.post('/groups', data),
   joinGroup: (id: string) => api.post(`/groups/${id}/join`),
+  leaveGroup: (id: string) => api.post(`/groups/${id}/leave`),
+  transferLeadership: (id: string, userId: string) =>
+    api.post(`/groups/${id}/transfer`, { userId }),
   sendMessage: (groupId: string, data: { content: string }) =>
     api.post(`/groups/${groupId}/messages`, data),
   createCheckInTemplate: (groupId: string, data: { title: string; description?: string; reminderTime: string }) =>
