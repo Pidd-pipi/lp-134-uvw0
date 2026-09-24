@@ -95,6 +95,7 @@ export interface SupportGroup {
   createdAt: string;
   members: GroupMember[];
   messages?: GroupMessage[];
+  checkInTemplates?: CheckInTemplate[];
   _count?: { members: number };
 }
 
@@ -104,7 +105,18 @@ export interface GroupMember {
   userId: string;
   joinedAt: string;
   role: string;
+  status: 'ACTIVE' | 'LEFT';
+  leftAt: string | null;
   user: User;
+}
+
+export interface CheckInTemplate {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string | null;
+  reminderTime: string;
+  createdAt: string;
 }
 
 export interface GroupMessage {

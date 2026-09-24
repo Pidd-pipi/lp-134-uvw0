@@ -45,6 +45,11 @@ enum CheckInStatus {
   MISSED
 }
 
+enum GroupMemberStatus {
+  ACTIVE
+  LEFT
+}
+
 model User {
   id              String          @id @default(uuid())
   username        String          @unique
@@ -232,6 +237,8 @@ model GroupMember {
   userId          String
   joinedAt        DateTime        @default(now())
   role            String          @default("member")
+  status          GroupMemberStatus @default(ACTIVE)
+  leftAt          DateTime?
   
   group           SupportGroup    @relation(fields: [groupId], references: [id])
   user            User            @relation(fields: [userId], references: [id])

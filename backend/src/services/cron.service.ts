@@ -19,12 +19,12 @@ const sendGroupActivityReminders = async (): Promise<void> => {
   try {
     const groups = await prisma.supportGroup.findMany({
       where: { status: 'ACTIVE' },
-      include: { members: true }
+      include: { members: { where: { status: 'ACTIVE' } } }
     });
 
     for (const group of groups) {
       const members = await prisma.groupMember.findMany({
-        where: { groupId: group.id },
+        where: { groupId: group.id, status: 'ACTIVE' },
         include: { user: true }
       });
 
@@ -53,7 +53,7 @@ const sendCheckInReminders = async (): Promise<void> => {
 
     for (const template of checkInTemplates) {
       const members = await prisma.groupMember.findMany({
-        where: { groupId: template.groupId }
+        where: { groupId: template.groupId, status: 'ACTIVE' }
       });
 
       for (const member of members) {
